@@ -1,0 +1,316 @@
+---
+title: 'D3 Project AS2020'
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(eval = TRUE)
+knitr::opts_chunk$set(message = FALSE)
+```
+
+### Your Name: Nurdzane Memeti
+### Version: C
+
+***
+## Abstract
+
+White and red variety are two popular ways of classifying wines. In a context of wine categorization, it is  investigated on the relationship between those two classes and their alcohol volume. For this purpose, It is selected a set of 29 wine labels to represent the five red grape varieties (Blauburgunder, Merlot 2009, Garanoir Gamaret, Pinot noir and Zweigelt) and three white grape varities (Chardonay, Rheinriesling, Sauvignon Blanc). Data were first analyzed using a time series plot, whereas the Infrarot-Spectrum of each grape varieties is visualized. Furthermore, clustering of wine labels are shown using the Multidimensional scaling (MDS) and the Cluster Dendogram. Results showed that the red grape varieties are predicted good. With the exception of Merlot 2009 and Garanoir_Gamaret. Despite the several clustering methods the white grape varieties are not predicted as good as the red grape varieties, especially the Sauvignon Blanc is predicted to be on the red grape varities. 
+
+In the second part of this report, the relationship between the two classes and their alcohol volume is described. A linear regression model with with the explanatory variables pc1 is used. The null hypothesis were rejected due to the coefficients pc1 were calculated as zero with the F-test of 11.11 and a p-value of 0.0025. However, the adjusted R-squared is 26.5% of the Alcohol Volume can be explained by the explanatory variables pc1. That is why a multiple regression model with the explanatory variables pc1, pc2, Glucose and pH of the grape wine varieties were chosen. Results showed that with an adjusted R-squared of 76.2% of the Alcohol Volume could be explained by the explanatory variables pc1, pc2, Glucose and pH. Nevertheless, the null-hypothesis was rejected due to the F-test of 23.44 with a p-value of 5.43e-08.
+
+Overall, the results indicate a difference between red and white grape variety dimensions with exception of several varieties  Merlot 2009, Garanoir_Gamaret and Sauvignon Blanc. There is no significance between the two classes and their alcohol volume. The methodology proposed seems to be a promising tool that could be helpful to improve the categorization between red and white wines.
+
+***
+
+#### Task 2
+```{r task2, warning=FALSE}
+
+
+#upload data set
+
+selection_parameters = read.csv(file = "Wineparameters.csv", sep = ';', header = TRUE)
+selection_spectra= read.csv(file = "Winespect.csv", sep = ';', header = TRUE)
+library(readr)
+w_parameters= read_delim("wineparameters.csv", 
+    ";", escape_double = FALSE, trim_ws = TRUE)
+
+wines=c("Blauburgunder", "Merlot 2009", "Garanoir_Gamaret", "Pino noir", "Zweigelt", "Chardonay", "Rheinriesling", "Sauvignon Blanc")
+
+library(dplyr)
+selection_parametersH= w_parameters[w_parameters$name %in% wines,]
+library(readr)
+w_spectra <- read_delim("winespect.csv", 
+    ";", escape_double = FALSE, trim_ws = TRUE)
+
+wine_ids <- c(selection_parametersH$WineID)
+
+selection_spectraH <- w_spectra[,colnames(w_spectra) %in% wine_ids]
+new_spec <- t(selection_spectraH)
+n_spec <- as.data.frame(new_spec)
+n_spec <- tibble::rownames_to_column(n_spec,"WineID")
+my_data <- merge(selection_parametersH,n_spec, by="WineID")
+
+#load library
+library(fossil)
+library(dplyr)
+library(readr)
+library(tidyverse)
+library(graphics)
+library(ggplot2)
+library(vegan)
+library(MuMIn)
+```
+
+***
+
+##Part 1: Exploratory Data Analysis
+#### Task 3
+```{r task3, warning=FALSE}
+#enter your code and run it
+n=length(my_data)
+
+p=ts.plot(t(my_data[10:n]), legend=levels(my_data$color), col=1:2,
+        gpars=list(main=paste("IR-Spectrum Analysis of Wine Varieties"),
+        xlab=paste("Wavelength [cm^-1]"),
+        ylab=paste("Absorbance"), 
+        lty=3,
+        Xgrid=TRUE,
+        Ygrid=TRUE,
+        plot_bgcolor = "gray")
+)
+
+#Add legend to top right, outside plot region
+#grid(lty=1, col=gray(.9))
+#layout(plot_bgcolor = "gray")
+legend("topright", legend=c("red", "white"), pch=20, 
+   col=my_data$color,
+   horiz=TRUE, 
+   bty='n', 
+   cex=0.8)
+
+```
+Discussion: 
+White and red grape varieties are shown in a time series measurements plos. A time series plot is used due to the meausurements are repeated in time for the same object.In the plot you can see that in ca. wavelength 1100 cm^-1 the absorbance of red and wine grape varieties are the highest. Furthermore the absorbance line between red and white wines seems to be quite similar. 
+
+***
+#### Task 4
+```{r task4, warning=FALSE}
+n=length(my_data)
+distance=dist(my_data[10:n],method="euclidean")
+MDS = cmdscale (distance , k=2)
+MDS1=MDS[,1]
+MDS2=MDS[,2]
+
+plot(MDS1,MDS2,
+     pch=20, 
+     cex=1,
+     col=my_data$color,#for the 2 classes red and white 
+     main = paste("MDS on IR-Spectrum Analysis of Wine Varieties"),
+     par = "gray"
+)
+text(MDS2~MDS1,labels=my_data$name,data=my_data, cex=0.5, font=2, pos=3)
+
+```
+Discussion: 
+A  Multidimensional scaling(MDS) clustering is shown that there is a difference between red and white wines. However the main red wine varieties are clustered in the left side, whereas there are some dots from the white wines varieties, namely Ssaugion Blanc, which are misclassified. On the right side of the MDS plot the majority of dots are white wines varieties, whereas 3 wine, namely "Zweigelt", are not clustered in the big cluster on the left side. Finally, Multidimensional scaling (MDS) is a multivariate data analysis approach that is used to visualize the similarity/dissimilarity between red and wine varieties by plotting points in two dimensional plots. MDS returns an optimal solution to represent my data set in a 2D space, where the number of k=2 is pre-specified. I also choose k=5 to optimize the features for the scatter plot. 
+
+Furthermore, I wanted to double check with a PCA. Mathematically and conceptually, there are close correspondences between MDS and other methods used to reduce the dimensionality of complex data, such as Principal components analysis (PCA) and factor analysis(see task 5). Finally, I did not find a difference in the plots between MDS and PCA. 
+
+***
+#### Task 5
+```{r task5, warning=FALSE}
+#for comparison reasoning I choose to use PCA too for task 4
+data2=my_data[10:n]
+my_data_pca=prcomp(data2)
+pc=predict(my_data_pca)
+pc1=pc[,1]
+pc2=pc[,2]
+
+plot(pc1,pc2,
+     pch=20, 
+     cex=1,
+     col=my_data$color,#for the 2 classes red and white 
+     main = paste("PCA on IR-Spectrum Analysis of Wine Varieties")
+)
+text(pc2~pc1,labels=my_data$name,data=my_data, cex=0.5, font=2, pos=3)
+sd=my_data_pca$sdev
+variance = sd^2 #variance
+var.percent = variance/sum(variance) * 100 #percentage of variance 
+#plot:
+barplot(var.percent , xlab="WineID", ylab=" Percent Variance",names.arg=1:length(var.percent),
+        las=1, ylim=c(0,max(var.percent)), col="gray", main=paste("PCA of wine bottles")
+)
+abline(h=1/ncol(my_data[10:17])*100, col="red") #12 percentage
+length(which(var.percent>(100*1/nrow(my_data[10:17]))))
+```
+Discussion: 
+A Percent Variance plot is done for Dimension reduction to illustrate the relevant information in two dimension. Firstly, in the x-axis the principial components are shown. Firstly, it calculate the the axis with the greatest variance and than the second pc by calculating the axis with the greatest variance with a coordinate system of 28 components.Doing this for all other components. After that, a line over the plot is fitted and it seems only the first two are above the line. The line is a form of selection criterium for the first eight pc.However, the first component is greater than 50%, whereas the second component is 20%.  
+
+
+***
+#### Task 6
+```{r task6, warning=FALSE}
+#pc at least 97%
+length(which(var.percent>(97*1/nrow(my_data[10:n]))))
+#perform a wards clustering
+#label the dendogram using the wine varieties.
+#confusion matrix, actual classes
+d = dist(MDS) # creates a object with the interpoint distances
+hc= hclust(d , method ="ward.D") #the result of hclust is written into hc
+democut = cutree ( hc , k =2) #try and find out
+democut2 = cutree ( hc , h =0.65)
+# new plot :
+plot(hc, hang = -1, 
+     my_data$name, 
+     main="Cluster Dendogram of Wine Varities", 
+     ylab = "Distances between clusters")
+# draw dendogram with blue borders around the 5 clusters
+rect.hclust( hc , k =5 , border ="blue")
+
+# confusion matrix
+k=8
+actual_classes=as.matrix(my_data$name) #actual labels as matrix
+predicted_classes = cutree(hc,k) #predicted cluster labels
+confusion_matrix = table(actual_classes, predicted_classes)
+confusion_matrix
+
+
+```
+Discussion: 
+In practice, Ward’s method is often considered the most reliable hierarchical clustering method (yielding the most reliable results). In the following plot you can see 5 clusters of the wine varieties using a Cluster Dendogram. Furthermore, you can take the confusion matrix to assess the correctness of the clustering. For example "Blauburgunder" is well predictet with 3 times in the predicted class 1. With execption the "Garanoir_Gamaret, which in confusion matrix as well as in the Dendogramm is not predicted well, it is a misclassification. Additionally, the classes "Merlot 2009" and "Sauvignon Blanc" are not predicted well. Overall, for a definite clustering of the wine varieties it needs to consider the whole wine varieties of the data set "selection_parameters". 
+
+***
+#### Task 7
+```{r task7, warning=FALSE}
+#confusion matrix with k=2, because 2 classes white and red
+k=2
+actual_classes=as.matrix(my_data$color) 
+predicted_classes = cutree(hc,k) #predicted clustering
+confusion_matrix = table(actual_classes, predicted_classes)
+confusion_matrix
+
+#randindex= Measures to compare the similarity of two clustering outcomes
+rand.index(as.numeric(as.factor(actual_classes)),predicted_classes)
+adj.rand.index(as.numeric(as.factor(actual_classes)),predicted_classes)
+```
+
+Discussion: The Rand.Index Value between Actual Classes and Predicted Classes is 0.6206897. The Adjusted Rand Index (ARI) takes values between -1 and 1 and is used to measure the similarity of data points presents in the clusters. For this task, the two cluster red and white grape wines have a value of: 0.6206897 that means that 62%accuracy of the clustering are matching.
+
+***
+#### Task 8
+```{r task8, warning=FALSE}
+#calculating the rand.index of single linkage "sl" first:
+hc_sl=hclust(d,method="single")
+rand.index(hc$height, hc_sl$height) #result: 0.9150231
+#compare ward's method and single linkage by calculating the rand.index
+
+```
+Discussion: 
+The Rand Index of ward's method and single linkage method is: 0.9150231. However, the Rand index range lays between 0 and 1, whereas 1 means that the clustering are matching well. In this case the 2 clustered method are matching good with a rand.index of 91,5%.
+***
+##Part 2: Regression
+#### Task 9
+```{r task9, warning=FALSE}
+data2=my_data[10:n]
+my_data_pca=prcomp(data2)
+pc=predict(my_data_pca)
+pc1=pc[,1]
+pc2=pc[,2]
+
+#my_data$Alc.Vol.=factor(my_data$Alc.Vol.)
+ggplot(my_data, aes(x=pc1,y=my_data$`Alc Vol%`)) + 
+        geom_point() + 
+        geom_smooth(method = "lm", col = "black") + 
+        geom_smooth(method = "loess", col="blue")
+
+```
+Discussion: 
+the question is misleading. since MDS is calculated in task 4. The results indicate that the standard loess curve and the linear model give not very similar results. In the view of this, there I can see that the method = "loess" (blue) identifies non-linear trends and ignores outliers. I can not see here a clearly positive, linear relationship, because of the right side of the plot. This model is nod describing the data well enough.
+
+***
+#### Task 10
+```{r task10, warning=FALSE}
+wine.lm = lm(my_data$`Alc Vol%` ~ pc1, data = my_data)
+wine.lm
+plot(wine.lm, which=1)
+summary(wine.lm)
+
+summary(wine.lm)$adj.r.squared
+
+```
+Discussion: 
+The linear model gives the estimate αˆ = 12.593 and  βˆ = -6.069. Therefore, I estimate that the average wavelength decreases by -6.069 for every wine varieties. Keeping in mind, that we are looking int he wine warities: Blauburgunder, Merlot 2009, Garanoir Gamaret, Pinot noir, Zweigelt, Chardonay, Rheinriesling and Sauvignon Blanc. To check the variance homogeneity I visualize the wine.lm dataset to see if the variance of the residuals shows a pattern. A Scale-Location plot is generated and shows iff residuals are spread equally along the ranges of predictors.
+With a Scale-location plot I want to check 2 things:
+1) the red line is approximately horizontal. In this case it is approx. horizontaly and that means, that the average magnitude of the standardized residuals is not changing much as a function of the fitted values.
+2) The spread around the red line does not vary with the fitted values. here, it is not so clear. Therefore,the variability of magnitudes does not vary much as a function of the fitted values.
+However, it is hard to interpret with just little amount of data. Finally, I can see a trend pattern in the red line.The adjusted R2 has a value of 0.2653608. First I fitted the model and adjusted with R^2, that means that 26.5% of the Alcohol Volume can be explained by the explanatory variables pc1. We can reject the null hypothesis that the coefficients pc1 are zero since the F-test=11.11 with a p-value =0.0025. That suggets that the linear model does not describe the data well enough and we have to inlude more parameters, see next task.
+
+***
+#### Task 11
+```{r task11, warning=FALSE}
+#fit a multiple regression model outcome alcohol volume and explanatory variables pc1, pc2, glucose and pH without any interactions or non-linear effects.
+
+wine2.lm=lm((my_data$`Alc Vol%`~pc2+pc1+my_data$Glucose+my_data$pH), data=my_data)
+wine2.lm
+plot(wine2.lm,which=1)
+
+```
+Discussion: Here again, the question is misleading. since MDS is calculated in task 4. To check the variance homogeneity I visualize the wine dataset to see if the variance of the residuals shows a pattern. A residual plot is generated by plotting the residuals versus the fitted values, in this case we have PC2, PC1, Glucose and pH-values. 
+A Scale-Location plot is generated and shows f residuals are spread equally along the ranges of predictors.
+With a Scale-location plot I want to check 2 things:
+1) the red line is approximately horizontal. In this case it is not approx. horizontaly and that means, taht the average magnitude of the standardized residuals is changing much as a function of the fitted values.
+2) The spread around the red line does not vary with the fitted values. here again, it is not the case. Therefore,the variability of magnitudes does vary much as a function of the fitted values.
+Both conditions are not satisfied. I continue to check the estimated parameter in there significance:
+
+***
+#### Task 12
+```{r task12, warning=FALSE}
+
+# Extract the estimated coefficients
+coef(wine2.lm)
+summary(wine2.lm)
+summary(wine2.lm)$adj.r.squared
+AIC(wine2.lm,wine.lm)
+
+ 
+```
+Discussion: The multiple regression model gives the estimate αˆ = 11.5,  βˆ0 = 7.9, etc. (see table). Furthermore, I can say, that the explanatory variables pc1, pc2 and Glucose are significant, but the explanatory variables pH is not significant. The Residual standard error is 0.2276, and his is on the scale of the model. A overall F value is generated with F-statistic: 23.44 on 4 and 24 DF with a p-value of 5.43e-08. Therefore, the null-hypothesis can be rejected.The explanatory variables have no effect on the Alcohol Volume.
+
+Keeping in mind, that we are looking, the wine varities: Blauburgunder, Merlot 2009, Garanoir Gamaret, Pinot noir, Zweigelt, Chardonay, Rheinriesling and Sauvignon Blanc.Therefore, it is a small dataset and I can not say a conclusive interpretation.  
+In addition, The adjusted R2 has a value of 0.7621889. First I fitted the model and adjusted with R^2, that means that 76.2% of the Alcohol Volume can be explained by the explanatory variables pc1, pc2, Glucose and pH. 
+Furthermore, i tried a the AIC method to double check the value. So, with a AIC value of 2.958225 for Multiple regression model I conclude, that the multiple regression model fits much better than the simple linear regression model (From task 10, here wine.lm). As far as I understand it, if the AIC value is small, than the model is fitting better on the corresponding model. We can reject the null hypothesis that the coefficients (see in table) are zero since the F-test=23.44 with a p-value =5.43e-08.
+
+
+***
+#### Task 13
+```{r task13, warning=FALSE}
+wine3.lm=lm(my_data$`Alc Vol%` ~ pc1 + pc2 + Glucose, data = my_data)
+coef(wine3.lm)
+summary(wine3.lm)
+
+```
+Discussion:
+The multiple regression model gives the estimate αˆ = 12.78,  βˆ0 = -3.12, etc. (see table). Furthermore, I can say, that the explanatory variables pc1, pc2 and Glucose are still significant. The Residual standard error is 0.7877, and his is on the scale of the model. A overall F value is generated with F-statistic: 30.92 on 3 and 25 DF,  p-value: 1.423e-08. Therefore, the null-hypothesis can be rejected.The explanatory variables have no effect on the Alcohol Volume. A non-significant parameters are not necessary,because we already rejected the null hypothesis in task 12.
+
+
+***
+
+#### Task 14
+```{r task14, warning=FALSE}
+
+# Create Equation for Regression Model
+my_data.lm<- lm(my_data$`Alc Vol%` ~ pc2 + pc1*my_data$color, data = my_data)
+summary(my_data.lm)
+#calculate the coefficient
+
+```
+Discussion: 
+A regression model with outcome alcohol volume and a main effect for pc2, as well as main effects and interactions for pc1 and color (coded as a factor) is made. From it we get the estimatd regression lines for red resp. white wines as following:
+y_red=12.74087+ 9.73507*pc2 + 0.34944*pc1
+y_white=(12.74087-0.33034) + 9.73507*pc2 + (0.34944-9.02906)*pc1
+
+***
