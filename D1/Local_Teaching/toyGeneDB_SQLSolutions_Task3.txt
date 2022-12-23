@@ -1,0 +1,65 @@
+Task 2
+
+Query 1
+Select the column "name" from the table "protein" (hereafter, referred to as "protein.name")
+SELECT "protein"."name" FROM "protein"
+
+Query 2
+Select the columns name and sequence from the table protein, sort the result in descending order of the names (use "Sort" in the design view)
+SELECT "name" FROM "protein" ORDER BY "name" ASC
+
+Query 3
+In the species table, show the name and scientific_name of the rat
+Hint: use "Criterion" in the design view
+SELECT "name", "scientific_name" FROM "species" WHERE "name" = 'rat'
+
+Query 4
+Do the same as in Query 3, but only display the scientific_name
+SELECT "scientific_name" FROM "species" WHERE "name" = 'rat'
+
+Query 5
+In the species table, show the name and scientific_name of rat and human
+Hint: use "Criterion" and "Or" in the design view
+SELECT "name", "scientific_name" FROM "species" WHERE ( "name" = 'rat' OR "name" = 'human' )
+
+Query 6
+Select the protein names and sequences for proteins that contain the subsequence SHS.
+Hint: write the following in the appropriate "Criterion"-field: LIKE 'SHS*'
+SELECT "name", "sequence" FROM "protein" WHERE "sequence" LIKE '%SHS%'
+
+Query 7
+Select the protein names and sequences for proteins that contain the subsequence "SHS" or the subsequence "GY"
+SELECT "name", "sequence" FROM "protein" WHERE ( "sequence" LIKE '%SHS%' OR "sequence" LIKE '%GY%' )
+
+Query 8
+Show all the human proteins
+Hint: In the design view form, you need on column for the species table (to insert "human" in "Criterion"), and one column for the protein table (to select the protein name)
+SELECT "species"."name", "protein"."name" FROM "protein", "species" WHERE "protein"."species_id" = "species"."ID" AND "species"."name" = 'human'
+
+Query 9
+Count the number of human proteins
+Hint: 1. Build on Query 8; 2. make sure to disable visibility of the species name; 3. Use the function "Count"
+SELECT COUNT( "protein"."name" ) FROM "protein", "species" WHERE "protein"."species_id" = "species"."ID" AND "species"."name" = 'human'
+
+
+Task 3
+
+SQL-Query 1
+Modify Query 1 to show species.scientific_name
+Solution: SELECT "scientific_name" FROM "species"
+
+SQL-Query 2
+Modify Query 2 to sort in descending order (substituting DESC by ASC)
+Solution: SELECT "name", "sequence" FROM "protein" ORDER BY "name" ASC
+
+SQL-Query 3
+Modify Query 3 to show the scientific name (only) of human
+Solution: SELECT "scientific_name" FROM "species" WHERE "name" = 'human'
+
+SQL-Query 4
+Modify Query 5 to show the sequence of "GTM1_HUMAN" and "GTM2_HUMAN"
+Solution: SELECT "sequence" FROM "protein" WHERE ( "name" = 'GTM1_HUMAN' OR "name" = 'GTM2_HUMAN' )
+
+SQL-Query 5
+Modify Query 6 to show results of proteins that contain the subsequence KM
+Solution: SELECT "name", "sequence" FROM "protein" WHERE "sequence" LIKE '%KM%'
