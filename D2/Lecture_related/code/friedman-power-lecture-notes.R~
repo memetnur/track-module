@@ -1,0 +1,113 @@
+# power simulation for the Friedman test
+## structure
+n.block <- 4 ## number of blocks
+n.treatments <- 7 ## number of treatments
+
+## parameters
+means <- c(1, 5.5, 2, 3, 5.4, 7, 7)
+sds <- c(1, 1, 1, 1, 1, 1, 1) ## standard deviation of yield given trt, same for all blocks
+sd.block <- 1.5 ## standard deviation of block random effects
+
+## construct the data frame
+df <- cbind(block = paste0("B", rep(1:n.block, each = n.treatments)),
+            treatment = paste0("T", rep(1:n.treatments, each = 1)))
+df <- data.frame(df)
+df
+str(df)
+
+## set random number seed
+set.seed(2)
+
+## simulate the block means
+blk.means <- rnorm(n = n.block, mean = 0, sd = sd.block)
+blk.means
+
+## simulate the data: show the logic
+## first calculate vector of means and vector of sds
+blk.vec <- rep(blk.means, each = n.treatments) ## block effect + treatment effect
+trt.vec <- rep(rep(means, each = 1), times = n.block)
+sd.vec <- rep(rep(sds, each = 1), times = n.block)
+df$blk.effect <- blk.vec
+df$trt.effect <- trt.vec
+df$error.sd <- sd.vec
+df$error <- rnorm(n = dim(df)[1], sd = df$error.sd)
+df$y <- df$blk.effect + df$trt.effect + df$error
+df
+
+## test
+friedman.test(y ~ treatment | block, data = df)
+friedman.test(y ~ treatment | block, data = df)$p.value
+
+
+## now let us repeat this a few times
+ft.sim <- function(n.block, n.treatments, means, sds, sd.block) {
+    df <- cbind(block = paste0("B", rep(1:n.block, each = n.treatments)),
+            treatment = paste0("T", rep(1:n.treatments, each = 1)))
+    df <- data.frame(df)
+    df$y <- rnorm(n = dim(df)[1],
+                  mean = rep(rnorm(n = n.block, mean = 0, sd = sd.block), each = n.treatments*1) +
+                      rep(rep(means, each = 1), times = n.block),
+                  sd = rep(rep(sds, each = 1), times = n.block))
+    friedman.test(y ~ treatment | block, data = df)$p.value
+}
+
+## apply
+set.seed(2)
+ft.sim(n.block = 4, n.treatments = 7, means = c(1, 5.5, 2, 3, 5.4, 7, 7),
+       sds = c(1, 1, 1, 1, 1, 1, 1), sd.block = 1.5)
+
+## repeat 1000 times ###########################################################
+set.seed(2)
+
+## Strong treatment effect
+ftp <- rep(NA, 1000)
+for (i in 1: length(ftp)) ftp[i] <- ft.sim(n.block = 8, n.treatments = 7,
+                                           means = c(1, 1, 2, 2, 1, 2, 3),
+                                           sds = rep(1, 7),
+                                           sd.block = 1.5)
+length(ftp[ftp < 0.05]) / length(ftp) ## power 
+
+
+## now with weaker treatment effect
+ftp <- rep(NA, 1000)
+for (i in 1: length(ftp)) ftp[i] <- ft.sim(n.block = 4, n.treatments = 7,
+                                           means = c(1, 1, 2, 2, 1, 2, 3),
+                                           sds = rep(1, 7),
+                                           sd.block = 1.5)
+length(ftp[ftp < 0.05]) / length(ftp) ## power 
+
+
+## What if we use the proper parametric model (whose assumptions we
+## know are fulfilled because we simulated the data) and not the
+## Friedman test?
+
+## mixed model
+library(nlme)
+anova(lme(y ~ treatment, random = ~ 1 | block, data=df))$`p-value`[2]
+
+compare.sim <- function(n.block, n.treatments, means, sds, sd.block) {
+    df <- cbind(block = paste0("B", rep(1:n.block, each = n.treatments)),
+            treatment = paste0("T", rep(1:n.treatments, each = 1)))
+    df <- data.frame(df)
+    df$y <- rnorm(n = dim(df)[1],
+                  mean = rep(rnorm(n = n.block, mean = 0, sd = sd.block), each = n.treatments*1) +
+                      rep(rep(means, each = 1), times = n.block),
+                  sd = rep(rep(sds, each = 1), times = n.block))
+    return(c(ftp = friedman.test(y ~ treatment | block, data = df)$p.value,
+             lmp = anova(lme(y ~ treatment, random = ~ 1 | block, data=df))$`p-value`[2]))
+}
+
+p.val <- data.frame(matrix(NA, nrow = 1000, ncol = 2))
+names(p.val) <- c("Friedman.p.value", "Mixed.model.pvalue")
+
+for (i in 1: dim(p.val)[1]) p.val[i,] <- compare.sim(n.block = 4, n.treatments = 7,
+                                                     means = c(1, 1, 2, 2, 1, 2, 3),
+                                                     sds = rep(1, 7),
+                                                     sd.block = 1.5)
+p.val
+
+sig <- function(x) length(x[x<0.05]) / length(x)
+apply(p.val, MARGIN = 2, sig)
+## For data which come from a normal distribution, we can not beat
+## mixed models. For data from other distributions, this can be quite
+## different! We could simulate this now ...

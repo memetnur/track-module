@@ -1,0 +1,11 @@
+plot,block,location,radiation,number.species,shannon
+1,B1,shaded,177249,12,2.06
+2,B2,shaded,202840,12,2.17
+3,B3,shaded,274518,11,2.03
+4,B4,shaded,255937,18,2.64
+5,B5,shaded,342956,19,2.72
+6,B1,open,344683,24,2.65
+7,B2,open,392805,26,2.67
+8,B3,open,404159,20,2.63
+9,B4,open,407110,23,2.82
+10,B5,open,409166,28,3.07

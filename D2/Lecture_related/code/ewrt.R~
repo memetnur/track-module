@@ -1,0 +1,17 @@
+## print working directory
+getwd()
+## set random number seed
+set.seed(2)
+
+## load all packages here
+library(ggplot2)
+
+## data import
+data <- read.table("../data/data.csv", sep=",", header = TRUE)
+
+## analyses
+str(data)
+summary(data)
+
+## run after end of analysis, save result
+sessionInfo()
